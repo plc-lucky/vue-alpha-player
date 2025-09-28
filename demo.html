@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vue-alpha-player Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .video-container {
+            width: 100%;
+            height: 400px;
+            margin-bottom: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .info {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        
+        .url-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 引入 Vue 3 -->
+     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入本地构建的组件 -->
+     <script src="./lib/vue-alpha-player.js"></script>
+    <div id="app">
+        <div class="container">
+            <h1>vue-alpha-player WebGL 演示</h1>
+            
+            <div class="info">
+                <strong>说明：</strong> 这是一个基于 WebGL 的双通道透明视频播放器。视频格式要求：左半部分为 Alpha 通道，右半部分为 RGB 通道。
+            </div>
+            
+            <div class="video-container">
+                <vue-alpha-player
+                style="width: 200px;"
+                    ref="videoPlayerRef"
+                    src="./src//assets//alpha.mp4"
+                    :autoplay="autoplay"
+                    :loop="loopCount"
+                    @play="onVideoPlay"
+                    @pause="onVideoPause"
+                    @stop="onVideoStop"
+                    @ended="onVideoEnded"
+                >
+                    <template #loading>
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #666;">
+                            <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;"></div>
+                            <p>正在加载透明视频...</p>
+                        </div>
+                    </template>
+                </vue_alpha_player>
+            </div>
+
+            <div class="controls">
+                <button @click="playVideo">播放</button>
+                <button @click="pauseVideo">暂停</button>
+                <button @click="resetVideo">重置</button>
+                <button @click="toggleAutoplay">
+                    {{ autoplay ? '关闭自动播放' : '开启自动播放' }}
+                </button>
+                <select v-model="loopCount" @change="updateLoop">
+                    <option :value="0">无限循环</option>
+                    <option :value="1">播放1次</option>
+                    <option :value="3">播放3次</option>
+                    <option :value="5">播放5次</option>
+                </select>
+            </div>
+
+            <div class="status">
+                <strong>状态：</strong> {{ status }}
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+    <script >
+        // 导入Vue 3
+		const { createApp, ref } = Vue
+
+        // 创建 Vue 应用并注册组件
+        const app = createApp({
+            setup() {
+                const videoPlayerRef = ref(null);
+                const videoUrl = ref('');
+                const currentVideoUrl = ref('');
+                const showPlayer = ref(false);
+                const autoplay = ref(true);
+                const loopCount = ref(0);
+                const status = ref('等待加载视频');
+                
+                // 加载视频
+                const loadVideo = () => {
+                    if (videoUrl.value.trim()) {
+                        currentVideoUrl.value = videoUrl.value.trim();
+                        showPlayer.value = true;
+                        status.value = '视频加载中...';
+                    }
+                };
+                
+                // 播放控制
+                const playVideo = () => {
+                    videoPlayerRef.value?.play();
+                };
+                
+                const pauseVideo = () => {
+                    videoPlayerRef.value?.pause();
+                };
+                
+                const resetVideo = () => {
+                    videoPlayerRef.value?.reset();
+                };
+                
+                const toggleAutoplay = () => {
+                    autoplay.value = !autoplay.value;
+                };
+                
+                const updateLoop = () => {
+                    // 循环次数更新后需要重新加载视频
+                    if (showPlayer.value) {
+                        loadVideo();
+                    }
+                };
+                
+                // 事件处理
+                const onVideoPlay = () => {
+                    status.value = '视频播放中';
+                    console.log('视频开始播放');
+                };
+                
+                const onVideoPause = () => {
+                    status.value = '视频已暂停';
+                    console.log('视频暂停');
+                };
+                
+                const onVideoStop = () => {
+                    status.value = '视频已停止';
+                    console.log('视频停止');
+                };
+                
+                const onVideoEnded = () => {
+                    status.value = '视频播放结束';
+                    console.log('视频播放结束');
+                };
+                
+                return {
+                    videoPlayerRef,
+                    videoUrl,
+                    currentVideoUrl,
+                    showPlayer,
+                    autoplay,
+                    loopCount,
+                    status,
+                    loadVideo,
+                    playVideo,
+                    pauseVideo,
+                    resetVideo,
+                    toggleAutoplay,
+                    updateLoop,
+                    onVideoPlay,
+                    onVideoPause,
+                    onVideoStop,
+                    onVideoEnded
+                };
+            }
+        });
+        
+        // 注册 VueAlphaPlayerWebGL 组件
+		console.log(VueAlphaPlayer,"VueAlphaPlayer")
+        app.component('VueAlphaPlayer', VueAlphaPlayer);
+        
+        // 挂载应用
+        app.mount('#app');
+    </script>
+</body>
+</html>
